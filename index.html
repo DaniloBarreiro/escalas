@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calendário de Escalas</title>
+<style>
+  :root{
+    --ink:#152a30;
+    --ink-soft:#4d6067;
+    --line:#e2ddd0;
+    --page:#faf7f0;
+    --card:#ffffff;
+    --work-bg:#3E7C74;
+    --work-text:#f4faf8;
+    --folga-bg:#F4EEDD;
+    --folga-text:#5b5540;
+    --holiday-ring:#a13d2f;
+    --accent:#c96a3f;
+    --today-ring:#1d9e75;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    background:var(--page);
+    color:var(--ink);
+    padding:32px 16px 64px;
+  }
+  .wrap{max-width:900px;margin:0 auto;}
+  header h1{
+    font-size:28px;
+    font-weight:700;
+    letter-spacing:-0.01em;
+    margin:0 0 4px;
+  }
+  header p{
+    margin:0 0 24px;
+    color:var(--ink-soft);
+    font-size:15px;
+  }
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:24px;
+    margin-bottom:20px;
+  }
+  .controls{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    align-items:flex-end;
+    margin-bottom:20px;
+  }
+  .field label{
+    display:block;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.06em;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  select{
+    appearance:none;
+    background:var(--page);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:10px 36px 10px 14px;
+    font-size:15px;
+    font-weight:600;
+    color:var(--ink);
+    min-width:200px;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%234d6067' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 12px center;
+    cursor:pointer;
+  }
+  .nav{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-left:auto;
+  }
+  .nav button{
+    border:1px solid var(--line);
+    background:var(--page);
+    border-radius:10px;
+    width:38px;
+    height:38px;
+    font-size:16px;
+    cursor:pointer;
+    color:var(--ink);
+  }
+  .nav button:hover{background:#f0ebdc;}
+  .nav .today-btn{
+    width:auto;
+    padding:0 16px;
+    font-weight:700;
+    font-size:13px;
+    background:var(--ink);
+    color:#fff;
+    border-color:var(--ink);
+  }
+  .month-label{
+    font-size:17px;
+    font-weight:700;
+    min-width:170px;
+    text-align:center;
+  }
+  .legend{
+    display:flex;
+    gap:20px;
+    flex-wrap:wrap;
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-bottom:18px;
+  }
+  .legend span{display:inline-flex;align-items:center;gap:8px;}
+  .swatch{width:16px;height:16px;border-radius:5px;display:inline-block;}
+  .sw-work{background:var(--work-bg);}
+  .sw-folga{background:var(--folga-bg);border:1px solid var(--line);}
+  .sw-holiday{background:#fff;border:2px solid var(--holiday-ring);}
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:6px;
+  }
+  .dow{
+    text-align:center;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.05em;
+    color:var(--ink-soft);
+    padding-bottom:6px;
+  }
+  .day{
+    min-height:78px;
+    border-radius:10px;
+    padding:8px;
+    font-size:12px;
+    position:relative;
+  }
+  .day.empty{background:transparent;}
+  .day.work{background:var(--work-bg);color:var(--work-text);}
+  .day.folga{background:var(--folga-bg);color:var(--folga-text);}
+  .day.inactive{background:#f4f2ec;color:var(--ink-soft);}
+  .day.inactive .status{opacity:.7;}
+  .day .num{font-size:14px;font-weight:700;margin-bottom:4px;display:block;}
+  .day .status{font-size:10px;line-height:1.35;opacity:.92;}
+  .day.holiday{box-shadow:0 0 0 2px var(--holiday-ring) inset;}
+  .day.today .num{
+    display:inline-block;
+    background:var(--today-ring);
+    color:#fff;
+    border-radius:6px;
+    padding:0 6px;
+  }
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:12px;
+    margin-top:20px;
+  }
+  .stat{
+    background:var(--page);
+    border-radius:12px;
+    padding:14px 16px;
+    text-align:center;
+  }
+  .stat .val{font-size:24px;font-weight:800;}
+  .stat .lbl{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+  .cycle-note{
+    margin-top:14px;
+    font-size:12px;
+    color:var(--ink-soft);
+  }
+  .holidays-title{
+    font-size:15px;
+    font-weight:700;
+    margin:0 0 12px;
+  }
+  .holiday-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 0;
+    border-bottom:1px solid var(--line);
+    font-size:13px;
+  }
+  .holiday-row:last-child{border-bottom:none;}
+  .holiday-date{
+    width:56px;
+    font-weight:700;
+    color:var(--holiday-ring);
+    flex-shrink:0;
+  }
+  .holiday-name{flex:1;}
+  .badge{
+    font-size:10px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    padding:3px 8px;
+    border-radius:20px;
+    flex-shrink:0;
+  }
+  .badge.Nacional{background:#e6f1fb;color:#0c447c;}
+  .badge.Estadual{background:#eaf3de;color:#27500a;}
+  .badge.Municipal{background:#faece7;color:#712b13;}
+  .badge.Facultativo{background:#f1efe8;color:#444441;}
+  .badge.multi{background:#fbeaf0;color:#72243e;}
+  .empty-note{color:var(--ink-soft);font-size:13px;}
+  @media(max-width:600px){
+    .stats{grid-template-columns:1fr 1fr;}
+    .day{min-height:64px;font-size:10px;}
+    .day .status{display:none;}
+    select{min-width:160px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Calendário de Escalas</h1>
+    <p>Escolha o código da escala para ver os dias de trabalho e folga. Dias com borda vermelha são feriados.</p>
+  </header>
+
+  <div class="card">
+    <div class="controls">
+      <div class="field">
+        <label for="scheduleSelect">Código da escala</label>
+        <select id="scheduleSelect"></select>
+      </div>
+      <div class="nav">
+        <button id="prevBtn" aria-label="Mês anterior">&#8592;</button>
+        <div class="month-label" id="monthLabel"></div>
+        <button id="nextBtn" aria-label="Próximo mês">&#8594;</button>
+        <button class="today-btn" id="todayBtn">Hoje</button>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><span class="swatch sw-work"></span>Trabalho (horário conforme a escala selecionada)</span>
+      <span><span class="swatch sw-folga"></span>Folga</span>
+      <span><span class="swatch sw-holiday"></span>Feriado (nacional, estadual ou municipal)</span>
+      <span><span class="swatch" style="background:#f4f2ec;border:1px solid var(--line);"></span>Sem escala (antes de 09/08/2026)</span>
+    </div>
+
+    <div class="grid" id="dowRow"></div>
+    <div class="grid" id="calGrid" style="margin-top:6px;"></div>
+
+    <div class="stats">
+      <div class="stat"><div class="val" id="statWork">0</div><div class="lbl">Dias de trabalho</div></div>
+      <div class="stat"><div class="val" id="statFolga">0</div><div class="lbl">Folgas</div></div>
+      <div class="stat"><div class="val" id="statHours">0</div><div class="lbl">Horas previstas</div></div>
+    </div>
+    <p class="cycle-note">Ciclo de 28 dias, validado com 0 divergências contra a planilha oficial (D1–D4) e a escala A/B/C: 5 trabalho / 1 folga, 5 trabalho / 1 folga, 4 trabalho / 2 folga, 3 trabalho / 2 folga, 3 trabalho / 2 folga — cada código inicia em um ponto diferente do ciclo. As escalas só valem a partir de 09/08/2026; dias anteriores aparecem como "Sem escala".</p>
+  </div>
+
+  <div class="card">
+    <p class="holidays-title">Feriados do mês exibido</p>
+    <div id="holidayList"></div>
+  </div>
+</div>
+
+<script>
+const CYCLE = [1,1,1,1,1,0, 1,1,1,1,1,0, 1,1,1,1,0,0, 1,1,1,0,0, 1,1,1,0,0];
+const EPOCH = new Date(2026,0,1);
+const START_LIMIT = new Date(2026,7,9);
+
+function shiftLabel(turma){
+  if(turma==='D') return '10:00–15:00 / 16:00–19:48';
+  const starts = {A:'02:00', B:'03:00', C:'07:00'};
+  const endMap = {A:'11:48', B:'12:48', C:'16:48'};
+  return starts[turma] + '–' + endMap[turma];
+}
+
+const SCHEDULES = [
+  {code:'A1 - 150/2656', offset:9,  turma:'A'},
+  {code:'A2 - 150/2657', offset:2,  turma:'A'},
+  {code:'A3 - 150/2658', offset:23, turma:'A'},
+  {code:'A4 - 150/2659', offset:16, turma:'A'},
+  {code:'B1 - 150/2660', offset:9,  turma:'B'},
+  {code:'B2 - 150/2661', offset:2,  turma:'B'},
+  {code:'B3 - 150/2662', offset:23, turma:'B'},
+  {code:'B4 - 150/2663', offset:16, turma:'B'},
+  {code:'C1 - 150/2664', offset:9,  turma:'C'},
+  {code:'C2 - 150/2665', offset:2,  turma:'C'},
+  {code:'C3 - 150/2666', offset:23, turma:'C'},
+  {code:'C4 - 150/2667', offset:16, turma:'C'},
+  {code:'D1 - 150/2412', offset:23, turma:'D'},
+  {code:'D2 - 150/2413', offset:16, turma:'D'},
+  {code:'D3 - 150/2414', offset:9,  turma:'D'},
+  {code:'D4 - 150/2415', offset:2,  turma:'D'}
+];
+
+const HOLIDAYS = {
+  '2026-01-01':{name:'Confraternização Universal', type:'Nacional'},
+  '2026-02-16':{name:'Carnaval (segunda-feira, ponto facultativo)', type:'Facultativo'},
+  '2026-02-17':{name:'Carnaval', type:'Nacional'},
+  '2026-02-18':{name:'Quarta-feira de Cinzas (facultativo até 14h)', type:'Facultativo'},
+  '2026-04-03':{name:'Sexta-feira Santa', type:'Nacional'},
+  '2026-04-20':{name:'Aniversário de Caraguatatuba (169 anos)', type:'Municipal'},
+  '2026-04-21':{name:'Tiradentes', type:'Nacional'},
+  '2026-05-01':{name:'Dia do Trabalho', type:'Nacional'},
+  '2026-06-04':{name:'Corpus Christi (facultativo)', type:'Facultativo'},
+  '2026-06-13':{name:'Santo Antônio de Pádua', type:'Municipal'},
+  '2026-07-09':{name:'Revolução Constitucionalista de 1932', type:'Estadual'},
+  '2026-09-07':{name:'Independência do Brasil', type:'Nacional'},
+  '2026-10-12':{name:'Nossa Senhora Aparecida', type:'Nacional'},
+  '2026-11-02':{name:'Finados', type:'Nacional'},
+  '2026-11-15':{name:'Proclamação da República', type:'Nacional'},
+  '2026-11-20':{name:'Dia da Consciência Negra', type:'multi'},
+  '2026-12-08':{name:'Nossa Senhora da Conceição (padroeira, facultativo)', type:'Municipal'},
+  '2026-12-25':{name:'Natal', type:'Nacional'}
+};
+
+const DOW = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+let current = new Date(2026,7,1);
+const today = new Date();
+
+const select = document.getElementById('scheduleSelect');
+const groups = {};
+SCHEDULES.forEach((s,i)=>{
+  if(!groups[s.turma]){
+    groups[s.turma] = document.createElement('optgroup');
+    groups[s.turma].label = s.turma==='D' ? 'Turno 10:00 (split)' : 'Turno ' + shiftLabel(s.turma);
+    select.appendChild(groups[s.turma]);
+  }
+  const opt = document.createElement('option');
+  opt.value = i;
+  opt.textContent = s.code;
+  groups[s.turma].appendChild(opt);
+});
+select.value = 0;
+
+function toKey(d){
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function isWork(date, offset){
+  const days = Math.floor((new Date(date.getFullYear(),date.getMonth(),date.getDate()) - EPOCH) / 86400000);
+  let idx = (days + offset) % 28;
+  if(idx < 0) idx += 28;
+  return CYCLE[idx] === 1;
+}
+
+function isSameDay(a,b){
+  return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+}
+
+function render(){
+  const sched = SCHEDULES[select.value];
+  const offset = sched.offset;
+  const label = shiftLabel(sched.turma);
+  const y = current.getFullYear();
+  const m = current.getMonth();
+  document.getElementById('monthLabel').textContent = MONTHS[m] + ' ' + y;
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const atMin = (y===MIN_MONTH.getFullYear() && m===MIN_MONTH.getMonth());
+  const atMax = (y===MAX_MONTH.getFullYear() && m===MAX_MONTH.getMonth());
+  prevBtn.disabled = atMin;
+  prevBtn.style.opacity = atMin ? '0.35' : '1';
+  prevBtn.style.cursor = atMin ? 'not-allowed' : 'pointer';
+  nextBtn.disabled = atMax;
+  nextBtn.style.opacity = atMax ? '0.35' : '1';
+  nextBtn.style.cursor = atMax ? 'not-allowed' : 'pointer';
+
+  const dowRow = document.getElementById('dowRow');
+  dowRow.innerHTML = '';
+  DOW.forEach(d=>{
+    const el = document.createElement('div');
+    el.className='dow';
+    el.textContent=d;
+    dowRow.appendChild(el);
+  });
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML='';
+  const firstDay = new Date(y,m,1).getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+
+  for(let i=0;i<firstDay;i++){
+    const el = document.createElement('div');
+    el.className='day empty';
+    grid.appendChild(el);
+  }
+
+  let workCount=0, folgaCount=0;
+  const monthHolidays=[];
+
+  for(let d=1; d<=daysInMonth; d++){
+    const date = new Date(y,m,d);
+    const active = date >= START_LIMIT;
+    const work = active ? isWork(date, offset) : false;
+    if(active){ if(work) workCount++; else folgaCount++; }
+
+    const key = toKey(date);
+    const holiday = active ? HOLIDAYS[key] : null;
+    if(holiday) monthHolidays.push({day:d, key, ...holiday});
+
+    const el = document.createElement('div');
+    el.className = 'day ' + (!active ? 'inactive' : (work?'work':'folga')) + (holiday?' holiday':'') + (isSameDay(date,today)?' today':'');
+    const num = document.createElement('span');
+    num.className='num';
+    num.textContent = d;
+    const status = document.createElement('span');
+    status.className='status';
+    status.textContent = !active ? 'Sem escala' : (work ? label : 'Folga');
+    el.appendChild(num);
+    el.appendChild(status);
+    grid.appendChild(el);
+  }
+
+  document.getElementById('statWork').textContent = workCount;
+  document.getElementById('statFolga').textContent = folgaCount;
+  document.getElementById('statHours').textContent = (workCount*8.8).toFixed(1).replace('.',',') + ' h';
+
+  const listEl = document.getElementById('holidayList');
+  listEl.innerHTML='';
+  if(monthHolidays.length===0){
+    const p = document.createElement('p');
+    p.className='empty-note';
+    p.textContent='Nenhum feriado nacional, estadual ou municipal (Caraguatatuba) neste mês.';
+    listEl.appendChild(p);
+  } else {
+    monthHolidays.forEach(h=>{
+      const row = document.createElement('div');
+      row.className='holiday-row';
+      const dt = document.createElement('div');
+      dt.className='holiday-date';
+      dt.textContent = String(h.day).padStart(2,'0')+'/'+String(m+1).padStart(2,'0');
+      const nm = document.createElement('div');
+      nm.className='holiday-name';
+      nm.textContent = h.name;
+      const badge = document.createElement('span');
+      badge.className='badge '+h.type;
+      badge.textContent = h.type==='multi' ? 'Nac / Est / Mun' : h.type;
+      row.appendChild(dt);
+      row.appendChild(nm);
+      row.appendChild(badge);
+      listEl.appendChild(row);
+    });
+  }
+}
+
+const MIN_MONTH = new Date(2026,7,1);
+const MAX_MONTH = new Date(2026,11,1);
+
+document.getElementById('prevBtn').addEventListener('click', ()=>{
+  const target = new Date(current.getFullYear(), current.getMonth()-1, 1);
+  if(target < MIN_MONTH) return;
+  current = target;
+  render();
+});
+document.getElementById('nextBtn').addEventListener('click', ()=>{
+  const target = new Date(current.getFullYear(), current.getMonth()+1, 1);
+  if(target > MAX_MONTH) return;
+  current = target;
+  render();
+});
+document.getElementById('todayBtn').addEventListener('click', ()=>{
+  current = new Date(today.getFullYear(), today.getMonth(), 1);
+  render();
+});
+select.addEventListener('change', render);
+
+render();
+</script>
+</body>
+</html>
