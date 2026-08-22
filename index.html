@@ -16,6 +16,7 @@
     --folga-bg:#F4EEDD;
     --folga-text:#5b5540;
     --holiday-ring:#a13d2f;
+    --facultativo-ring:#c98a3d;
     --accent:#c96a3f;
     --today-ring:#1d9e75;
   }
@@ -129,10 +130,29 @@
     margin-bottom:16px;
   }
   .legend span{display:inline-flex;align-items:center;gap:8px;}
-  .swatch{width:14px;height:14px;border-radius:5px;display:inline-block;flex-shrink:0;}
+  .swatch{width:14px;height:14px;border-radius:5px;display:inline-block;flex-shrink:0;position:relative;}
   .sw-work{background:var(--work-bg);}
   .sw-folga{background:var(--folga-bg);border:1px solid var(--line);}
-  .sw-holiday{background:#fff;border:2px solid var(--holiday-ring);}
+  .sw-holiday{background:var(--folga-bg);border:2px solid var(--holiday-ring);}
+  .sw-holiday::after{
+    content:'';
+    position:absolute;
+    top:-3px; right:-3px;
+    width:7px; height:7px;
+    border-radius:50%;
+    background:var(--holiday-ring);
+    box-shadow:0 0 0 1.5px #fff;
+  }
+  .sw-facultativo{background:var(--folga-bg);border:2px dashed var(--facultativo-ring);}
+  .sw-facultativo::after{
+    content:'';
+    position:absolute;
+    top:-3px; right:-3px;
+    width:7px; height:7px;
+    border-radius:50%;
+    background:#fff;
+    border:2px solid var(--facultativo-ring);
+  }
   .grid{
     display:grid;
     grid-template-columns:repeat(7,minmax(0,1fr));
@@ -163,6 +183,21 @@
   .day .num{font-size:clamp(11px,3vw,14px);font-weight:700;margin-bottom:2px;display:block;}
   .day .status{font-size:9px;line-height:1.3;opacity:.92;word-break:break-word;}
   .day.holiday{box-shadow:0 0 0 2px var(--holiday-ring) inset;}
+  .day.holiday.facultativo{box-shadow:none;border:2px dashed var(--facultativo-ring);}
+  .day.holiday::after{
+    content:'';
+    position:absolute;
+    top:6px; right:6px;
+    width:9px; height:9px;
+    border-radius:50%;
+    background:var(--holiday-ring);
+    box-shadow:0 0 0 2px rgba(255,255,255,0.55);
+  }
+  .day.holiday.facultativo::after{
+    background:transparent;
+    border:2px solid var(--facultativo-ring);
+    box-shadow:none;
+  }
   .day.today .num{
     display:inline-block;
     background:var(--today-ring);
@@ -228,6 +263,21 @@
   .badge.Facultativo{background:#f1efe8;color:#444441;}
   .badge.multi{background:#fbeaf0;color:#72243e;}
   .empty-note{color:var(--ink-soft);font-size:13px;}
+  .download-btn{
+    display:block;
+    width:100%;
+    margin-top:16px;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid var(--line);
+    background:var(--page);
+    color:var(--ink);
+    font-size:14px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .download-btn:hover{background:#f0ebdc;}
+  .download-btn:active{transform:scale(0.99);}
 
   @media(max-width:640px){
     .day .status{display:none;}
@@ -264,13 +314,15 @@
         <div class="month-label" id="monthLabel"></div>
         <button id="nextBtn" aria-label="Próximo mês">&#8594;</button>
         <button class="today-btn" id="todayBtn">Hoje</button>
+        <button class="today-btn" id="copyLinkBtn" title="Copiar link desta escala e mês">Copiar link</button>
       </div>
     </div>
 
     <div class="legend">
-      <span><span class="swatch sw-work"></span>Trabalho (horário conforme a escala selecionada)</span>
+      <span><span class="swatch sw-work"></span>Trabalho</span>
       <span><span class="swatch sw-folga"></span>Folga</span>
-      <span><span class="swatch sw-holiday"></span>Feriado (nacional, estadual ou municipal)</span>
+      <span><span class="swatch sw-holiday"></span>Feriado</span>
+      <span><span class="swatch sw-facultativo"></span>Ponto facultativo</span>
     </div>
 
     <div class="grid" id="dowRow"></div>
@@ -281,6 +333,8 @@
       <div class="stat"><div class="val" id="statFolga">0</div><div class="lbl">Folgas</div></div>
       <div class="stat"><div class="val" id="statHours">0</div><div class="lbl">Horas previstas</div></div>
     </div>
+
+    <button id="downloadImgBtn" class="download-btn">Baixar imagem do mês</button>
   </div>
 
   <div class="card">
@@ -295,29 +349,29 @@ const EPOCH = new Date(2026,0,1);
 const START_LIMIT = new Date(2026,7,9);
 
 function shiftLabel(turma){
-  if(turma==='D') return '10:00–15:00 / 16:00–19:48';
+  if(turma==='D') return '10:00–19:48';
   const starts = {A:'02:00', B:'03:00', C:'07:00'};
   const endMap = {A:'11:48', B:'12:48', C:'16:48'};
   return starts[turma] + '–' + endMap[turma];
 }
 
 const SCHEDULES = [
-  {code:'A1 - 150/2656', offset:9,  turma:'A'},
-  {code:'A2 - 150/2657', offset:2,  turma:'A'},
-  {code:'A3 - 150/2658', offset:23, turma:'A'},
-  {code:'A4 - 150/2659', offset:16, turma:'A'},
-  {code:'B1 - 150/2660', offset:9,  turma:'B'},
-  {code:'B2 - 150/2661', offset:2,  turma:'B'},
-  {code:'B3 - 150/2662', offset:23, turma:'B'},
-  {code:'B4 - 150/2663', offset:16, turma:'B'},
-  {code:'C1 - 150/2664', offset:9,  turma:'C'},
-  {code:'C2 - 150/2665', offset:2,  turma:'C'},
-  {code:'C3 - 150/2666', offset:23, turma:'C'},
-  {code:'C4 - 150/2667', offset:16, turma:'C'},
-  {code:'D1 - 150/2412', offset:23, turma:'D'},
-  {code:'D2 - 150/2413', offset:16, turma:'D'},
-  {code:'D3 - 150/2414', offset:9,  turma:'D'},
-  {code:'D4 - 150/2415', offset:2,  turma:'D'}
+  {code:'A1 - 150/2656', short:'A1', offset:9,  turma:'A'},
+  {code:'A2 - 150/2657', short:'A2', offset:2,  turma:'A'},
+  {code:'A3 - 150/2658', short:'A3', offset:23, turma:'A'},
+  {code:'A4 - 150/2659', short:'A4', offset:16, turma:'A'},
+  {code:'B1 - 150/2660', short:'B1', offset:9,  turma:'B'},
+  {code:'B2 - 150/2661', short:'B2', offset:2,  turma:'B'},
+  {code:'B3 - 150/2662', short:'B3', offset:23, turma:'B'},
+  {code:'B4 - 150/2663', short:'B4', offset:16, turma:'B'},
+  {code:'C1 - 150/2664', short:'C1', offset:9,  turma:'C'},
+  {code:'C2 - 150/2665', short:'C2', offset:2,  turma:'C'},
+  {code:'C3 - 150/2666', short:'C3', offset:23, turma:'C'},
+  {code:'C4 - 150/2667', short:'C4', offset:16, turma:'C'},
+  {code:'D1 - 150/2412', short:'D1', offset:23, turma:'D'},
+  {code:'D2 - 150/2413', short:'D2', offset:16, turma:'D'},
+  {code:'D3 - 150/2414', short:'D3', offset:9,  turma:'D'},
+  {code:'D4 - 150/2415', short:'D4', offset:2,  turma:'D'}
 ];
 
 const HOLIDAYS = {
@@ -343,16 +397,68 @@ const HOLIDAYS = {
 
 const DOW = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const MIN_MONTH = new Date(2026,7,1);
+const MAX_MONTH = new Date(2026,11,1);
+const STORAGE_KEY = 'calendario_escalas_pref';
 
-let current = new Date(2026,7,1);
-const today = new Date();
+function clampMonth(d){
+  if(d < MIN_MONTH) return new Date(MIN_MONTH);
+  if(d > MAX_MONTH) return new Date(MAX_MONTH);
+  return d;
+}
+
+// --- Determine initial state: URL params > localStorage > defaults ---
+const params = new URLSearchParams(window.location.search);
+let storedPref = {};
+try{ storedPref = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); }catch(e){ storedPref = {}; }
+
+const urlEscala = params.get('escala');
+const urlMes = params.get('mes'); // formato YYYY-MM
+
+let initialIndex = 0;
+const wantedShort = urlEscala || storedPref.escala;
+if(wantedShort){
+  const foundIdx = SCHEDULES.findIndex(s => s.short.toUpperCase() === String(wantedShort).toUpperCase());
+  if(foundIdx >= 0) initialIndex = foundIdx;
+}
+
+let initialMonth = new Date(2026,7,1);
+const wantedMes = urlMes || storedPref.mes;
+if(wantedMes && /^\d{4}-\d{2}$/.test(wantedMes)){
+  const [yy,mm] = wantedMes.split('-').map(Number);
+  initialMonth = clampMonth(new Date(yy, mm-1, 1));
+}
+
+let current = initialMonth;
+let today = new Date();
+
+function isRealUrlContext(){
+  return window.location.protocol === 'http:' || window.location.protocol === 'https:' || window.location.protocol === 'file:';
+}
+
+function savePreference(){
+  const sched = SCHEDULES[select.value];
+  const y = current.getFullYear();
+  const m = String(current.getMonth()+1).padStart(2,'0');
+  const pref = {escala:sched.short, mes:`${y}-${m}`};
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(pref)); }catch(e){}
+  if(isRealUrlContext()){
+    try{
+      const newParams = new URLSearchParams();
+      newParams.set('escala', sched.short);
+      newParams.set('mes', pref.mes);
+      const newUrl = window.location.pathname + '?' + newParams.toString();
+      window.history.replaceState({}, '', newUrl);
+    }catch(e){ /* ambiente restrito (ex.: pré-visualização em iframe) — ignora silenciosamente */ }
+  }
+}
 
 const select = document.getElementById('scheduleSelect');
 const groups = {};
 SCHEDULES.forEach((s,i)=>{
   if(!groups[s.turma]){
     groups[s.turma] = document.createElement('optgroup');
-    groups[s.turma].label = s.turma==='D' ? 'Turno 10:00 (split)' : 'Turno ' + shiftLabel(s.turma);
+    groups[s.turma].label = 'Turno ' + shiftLabel(s.turma);
     select.appendChild(groups[s.turma]);
   }
   const opt = document.createElement('option');
@@ -360,7 +466,8 @@ SCHEDULES.forEach((s,i)=>{
   opt.textContent = s.code;
   groups[s.turma].appendChild(opt);
 });
-select.value = 0;
+select.value = initialIndex;
+savePreference();
 
 function toKey(d){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
@@ -429,7 +536,7 @@ function render(){
     if(holiday) monthHolidays.push({day:d, key, ...holiday});
 
     const el = document.createElement('div');
-    el.className = 'day ' + (!active ? 'inactive' : (work?'work':'folga')) + (holiday?' holiday':'') + (isSameDay(date,today)?' today':'');
+    el.className = 'day ' + (!active ? 'inactive' : (work?'work':'folga')) + (holiday?' holiday':'') + (holiday && holiday.type==='Facultativo' ? ' facultativo' : '') + (isSameDay(date,today)?' today':'');
     const num = document.createElement('span');
     num.className='num';
     num.textContent = d;
@@ -473,26 +580,207 @@ function render(){
   }
 }
 
-const MIN_MONTH = new Date(2026,7,1);
-const MAX_MONTH = new Date(2026,11,1);
-
 document.getElementById('prevBtn').addEventListener('click', ()=>{
   const target = new Date(current.getFullYear(), current.getMonth()-1, 1);
   if(target < MIN_MONTH) return;
   current = target;
+  savePreference();
   render();
 });
 document.getElementById('nextBtn').addEventListener('click', ()=>{
   const target = new Date(current.getFullYear(), current.getMonth()+1, 1);
   if(target > MAX_MONTH) return;
   current = target;
+  savePreference();
   render();
 });
 document.getElementById('todayBtn').addEventListener('click', ()=>{
-  current = new Date(today.getFullYear(), today.getMonth(), 1);
+  let target = new Date(today.getFullYear(), today.getMonth(), 1);
+  if(target < MIN_MONTH) target = MIN_MONTH;
+  if(target > MAX_MONTH) target = MAX_MONTH;
+  current = target;
+  savePreference();
   render();
 });
-select.addEventListener('change', render);
+function exportMonthImage(){
+  const sched = SCHEDULES[select.value];
+  const y = current.getFullYear();
+  const m = current.getMonth();
+  const firstDay = new Date(y,m,1).getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const totalCells = firstDay + daysInMonth;
+  const rows = Math.ceil(totalCells/7);
+
+  const scale = 2; // resolução mais nítida
+  const W = 760, headerH = 96, dowH = 28, cellW = W/7, cellH = 78;
+  const footerH = 60;
+  const H = headerH + dowH + rows*cellH + footerH;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W*scale;
+  canvas.height = H*scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale,scale);
+
+  const COL = {
+    page:'#faf7f0', ink:'#152a30', inkSoft:'#4d6067', line:'#e2ddd0',
+    work:'#3E7C74', workText:'#f4faf8', folga:'#F4EEDD', folgaText:'#5b5540',
+    inactive:'#f4f2ec', holiday:'#a13d2f', facultativo:'#c98a3d'
+  };
+
+  ctx.fillStyle = COL.page;
+  ctx.fillRect(0,0,W,H);
+
+  ctx.fillStyle = COL.ink;
+  ctx.font = '700 22px -apple-system, Segoe UI, Roboto, Arial, sans-serif';
+  ctx.fillText('Calendário de Escalas', 24, 36);
+
+  ctx.font = '600 16px -apple-system, Segoe UI, Roboto, Arial, sans-serif';
+  ctx.fillStyle = COL.inkSoft;
+  ctx.fillText(sched.code + '  •  ' + MONTHS[m] + ' ' + y, 24, 62);
+
+  ctx.font = '700 11px -apple-system, Segoe UI, Roboto, Arial, sans-serif';
+  DOW.forEach((d,i)=>{
+    ctx.fillStyle = COL.inkSoft;
+    ctx.textAlign='center';
+    ctx.fillText(d, i*cellW + cellW/2, headerH + 18);
+  });
+  ctx.textAlign='left';
+
+  let workCount=0, folgaCount=0;
+  let col=firstDay, row=0;
+  for(let d=1; d<=daysInMonth; d++){
+    const date = new Date(y,m,d);
+    const active = date >= START_LIMIT;
+    const work = active ? isWork(date, sched.offset) : false;
+    if(active){ if(work) workCount++; else folgaCount++; }
+    const holiday = active ? HOLIDAYS[toKey(date)] : null;
+
+    const x = col*cellW, yy = headerH+dowH + row*cellH;
+    const bg = !active ? COL.inactive : (work ? COL.work : COL.folga);
+    ctx.fillStyle = bg;
+    roundRect(ctx, x+2, yy+2, cellW-4, cellH-4, 8);
+    ctx.fill();
+
+    if(holiday){
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = holiday.type==='Facultativo' ? COL.facultativo : COL.holiday;
+      if(holiday.type==='Facultativo') ctx.setLineDash([4,3]); else ctx.setLineDash([]);
+      roundRect(ctx, x+3, yy+3, cellW-6, cellH-6, 7);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // ponto no canto: preenchido = feriado obrigatório, vazado = facultativo
+      const dotX = x+cellW-12, dotY = yy+12;
+      ctx.beginPath();
+      ctx.arc(dotX, dotY, 4.5, 0, Math.PI*2);
+      if(holiday.type==='Facultativo'){
+        ctx.fillStyle = '#fff';
+        ctx.fill();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = COL.facultativo;
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = COL.holiday;
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#fff';
+        ctx.stroke();
+      }
+    }
+
+    ctx.fillStyle = !active ? COL.inkSoft : (work ? COL.workText : COL.folgaText);
+    ctx.font = '700 14px -apple-system, Segoe UI, Roboto, Arial, sans-serif';
+    ctx.fillText(String(d), x+10, yy+22);
+    ctx.font = '400 9.5px -apple-system, Segoe UI, Roboto, Arial, sans-serif';
+    const label = !active ? 'Sem escala' : (work ? shiftLabel(sched.turma) : 'Folga');
+    wrapText(ctx, label, x+10, yy+38, cellW-18, 11);
+
+    col++;
+    if(col>6){ col=0; row++; }
+  }
+
+  ctx.fillStyle = COL.line;
+  ctx.fillRect(24, headerH+dowH+rows*cellH+16, W-48, 1);
+
+  ctx.font = '700 13px -apple-system, Segoe UI, Roboto, Arial, sans-serif';
+  ctx.fillStyle = COL.ink;
+  const hours = (workCount*8.8).toFixed(1).replace('.',',');
+  const summaryY = headerH+dowH+rows*cellH+40;
+  ctx.fillText(`${workCount} dias de trabalho`, 24, summaryY);
+  ctx.fillText(`${folgaCount} folgas`, 260, summaryY);
+  ctx.fillText(`${hours} h previstas`, 440, summaryY);
+
+  canvas.toBlob(blob=>{
+    const link = document.createElement('a');
+    const monthSlug = MONTHS[m].toLowerCase();
+    link.download = `escala_${sched.short}_${monthSlug}_${y}.png`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    setTimeout(()=>URL.revokeObjectURL(link.href), 4000);
+  }, 'image/png');
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight){
+  const words = text.split(' ');
+  let line = '';
+  let curY = y;
+  for(let i=0;i<words.length;i++){
+    const test = line + words[i] + ' ';
+    if(ctx.measureText(test).width > maxWidth && line !== ''){
+      ctx.fillText(line, x, curY);
+      line = words[i] + ' ';
+      curY += lineHeight;
+    } else {
+      line = test;
+    }
+  }
+  ctx.fillText(line, x, curY);
+}
+
+document.getElementById('downloadImgBtn').addEventListener('click', exportMonthImage);
+
+select.addEventListener('change', ()=>{ savePreference(); render(); });
+
+// Atualiza o destaque de "hoje" automaticamente quando o dia virar,
+// mesmo que a aba fique aberta passando da meia-noite.
+setInterval(()=>{
+  const now = new Date();
+  if(!isSameDay(now, today)){
+    today = now;
+    render();
+  }
+}, 60000);
+
+document.getElementById('copyLinkBtn').addEventListener('click', ()=>{
+  savePreference();
+  const btn = document.getElementById('copyLinkBtn');
+  const restore = ()=>{ btn.textContent = 'Copiar link'; };
+
+  if(!isRealUrlContext()){
+    btn.textContent = 'Indisponível aqui';
+    setTimeout(restore, 2200);
+    return;
+  }
+
+  const url = window.location.href;
+  navigator.clipboard.writeText(url).then(()=>{
+    btn.textContent = 'Link copiado!';
+    setTimeout(restore, 1800);
+  }).catch(()=>{
+    window.prompt('Copie o link abaixo:', url);
+  });
+});
 
 render();
 </script>
