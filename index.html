@@ -392,13 +392,31 @@ const HOLIDAYS = {
   '2026-11-15':{name:'Proclamação da República', type:'Nacional'},
   '2026-11-20':{name:'Dia da Consciência Negra', type:'multi'},
   '2026-12-08':{name:'Nossa Senhora da Conceição (padroeira, facultativo)', type:'Municipal'},
-  '2026-12-25':{name:'Natal', type:'Nacional'}
+  '2026-12-25':{name:'Natal', type:'Nacional'},
+  '2027-01-01':{name:'Confraternização Universal', type:'Nacional'},
+  '2027-02-08':{name:'Carnaval (segunda-feira, ponto facultativo)', type:'Facultativo'},
+  '2027-02-09':{name:'Carnaval', type:'Nacional'},
+  '2027-02-10':{name:'Quarta-feira de Cinzas (facultativo até 14h)', type:'Facultativo'},
+  '2027-03-26':{name:'Sexta-feira Santa', type:'Nacional'},
+  '2027-04-20':{name:'Aniversário de Caraguatatuba (170 anos)', type:'Municipal'},
+  '2027-04-21':{name:'Tiradentes', type:'Nacional'},
+  '2027-05-01':{name:'Dia do Trabalho', type:'Nacional'},
+  '2027-05-27':{name:'Corpus Christi (facultativo)', type:'Facultativo'},
+  '2027-06-13':{name:'Santo Antônio de Pádua', type:'Municipal'},
+  '2027-07-09':{name:'Revolução Constitucionalista de 1932', type:'Estadual'},
+  '2027-09-07':{name:'Independência do Brasil', type:'Nacional'},
+  '2027-10-12':{name:'Nossa Senhora Aparecida', type:'Nacional'},
+  '2027-11-02':{name:'Finados', type:'Nacional'},
+  '2027-11-15':{name:'Proclamação da República', type:'Nacional'},
+  '2027-11-20':{name:'Dia da Consciência Negra', type:'multi'},
+  '2027-12-08':{name:'Nossa Senhora da Conceição (padroeira, facultativo)', type:'Municipal'},
+  '2027-12-25':{name:'Natal', type:'Nacional'}
 };
 
 const DOW = ['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
 const MONTHS = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const MIN_MONTH = new Date(2026,7,1);
-const MAX_MONTH = new Date(2026,11,1);
+const MAX_MONTH = new Date(2027,11,1);
 const STORAGE_KEY = 'calendario_escalas_pref';
 
 function clampMonth(d){
@@ -422,7 +440,7 @@ if(wantedShort){
   if(foundIdx >= 0) initialIndex = foundIdx;
 }
 
-let initialMonth = new Date(2026,7,1);
+let initialMonth = clampMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 const wantedMes = urlMes || storedPref.mes;
 if(wantedMes && /^\d{4}-\d{2}$/.test(wantedMes)){
   const [yy,mm] = wantedMes.split('-').map(Number);
